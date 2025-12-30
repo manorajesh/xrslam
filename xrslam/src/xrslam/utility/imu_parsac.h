@@ -81,11 +81,14 @@ struct IMU_Parsac {
 
             for (size_t si = 0; si < ModelDoF; ++si) {
                 size_t sample_index;
-                if (m_nValidBins > 20)
+                if (m_nValidBins > 20) {
                     sample_index = sampler.draw_by_weight();
-                else
+                    make_sample_by_prior(tdata, tsample, sample_index, si);
+                }
+                else {
                     sample_index = lotbox.draw_without_replacement();
-                make_sample(tdata, tsample, sample_index, si);
+                    make_sample(tdata, tsample, sample_index, si);
+                }
             }
 
             std::vector<ModelType> models{apply(ModelSolver(), tsample)};
