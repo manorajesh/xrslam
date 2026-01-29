@@ -1,7 +1,7 @@
 %YAML:1.0
 output:
-  q_bo: [ -0.7071068, 0.7071068, 0, 0 ] # x y z w
-  p_bo: [ 0.053617261855615515, -0.0016905232538204646, -0.0075510493739824724 ] # x y z [m]
+  q_bo: [ 0, 0, 0, 1 ] # x y z w
+  p_bo: [ 0, 0, 0 ] # x y z [m]
 
 feature_tracker:
   min_keypoint_distance: 25.0

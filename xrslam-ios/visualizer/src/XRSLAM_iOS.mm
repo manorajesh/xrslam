@@ -137,11 +137,11 @@ struct OutputState {
 
     cv::Mat raw_image = cv::Mat(h, w, CV_8UC4, baseAddress, pixelPerRow);
 
-    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
-
     cv::Mat rgb_image;
     cv::cvtColor(raw_image, cvimage, cv::COLOR_BGRA2GRAY);
     cv::cvtColor(raw_image, rgb_image, cv::COLOR_BGRA2RGB);
+
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
 
     uiimage = MatToUIImage(rgb_image);
 }
@@ -157,6 +157,7 @@ struct OutputState {
         image.timeStamp = t;
         image.data = cvimage.data;
         image.stride = cvimage.step[0];
+        image.channel = cvimage.channels();
         XRSLAMPushSensorData(XRSLAM_SENSOR_CAMERA, &image);
         XRSLAMRunOneFrame();
 

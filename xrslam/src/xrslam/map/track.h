@@ -10,7 +10,7 @@
 
 namespace xrslam {
 
-enum TrackTag {
+enum TrackTag : int {
     TT_VALID = 0,
     TT_TRIANGULATED,
     TT_FIX_INVD,
