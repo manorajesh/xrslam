@@ -14,7 +14,7 @@ class Track;
 class Map;
 class ReprojectionErrorFactor;
 
-enum FrameTag {
+enum FrameTag : int {
     FT_KEYFRAME = 0,
     FT_NO_TRANSLATION,
     FT_FIX_POSE,

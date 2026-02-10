@@ -28,6 +28,7 @@ cmake -S . -B build/iOS                                                 \
     -D ENABLE_BITCODE=0                                                 \
     -D ENABLE_ARC=1                                                     \
     -D ENABLE_VISIBILITY=0                                              \
+    -D CMAKE_POLICY_VERSION_MINIMUM=3.5                                 \
     -D APP_IDENTIFIER_PREFIX="${APP_IDENTIFIER_PREFIX}"                 \
     -D IOS_DEVELOPMENT_TEAM="${IOS_DEVELOPMENT_TEAM}"
 
