@@ -20,6 +20,7 @@ class SlidingWindowTracker {
 
     void localize_newframe();
     void track_landmark();
+    bool seed_landmark_from_depth(Track *track);
     void refine_window();
     void slide_window();
     bool manage_keyframe();

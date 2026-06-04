@@ -25,6 +25,7 @@ class XRSLAMManager {
     int CheckLicense(const char *license_path, const char *product_name);
 
     void PushImage(XRSLAMImage *image);
+    void PushDepth(XRSLAMDepthImage *depth);
     void PushAcceleration(XRSLAMAcceleration *acc);
     void PushGyroscope(XRSLAMGyroscope *gyro);
 
@@ -48,6 +49,7 @@ class XRSLAMManager {
     std::unique_ptr<XRSLAM::Detail> detail_;
     std::mutex input_mutex_;
     std::shared_ptr<xrslam::Image> cur_image_;
+    std::shared_ptr<xrslam::DepthMap> cur_depth_;
 };
 } // namespace xrslam
 #endif

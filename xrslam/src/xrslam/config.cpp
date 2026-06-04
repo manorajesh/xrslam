@@ -77,6 +77,10 @@ size_t Config::parsac_keyframe_check_size() const { return 3; }
 
 size_t Config::sliding_window_tracker_frequent() const { return 1; }
 
+bool Config::depth_fusion_enabled() const { return false; }
+
+double Config::depth_prior_weight() const { return 0.0; }
+
 void Config::log_config() const {
     std::stringstream ss;
     ss << std::scientific << std::boolalpha << std::setprecision(5);

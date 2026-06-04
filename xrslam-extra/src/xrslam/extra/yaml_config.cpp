@@ -117,6 +117,9 @@ YamlConfig::YamlConfig(const std::string &slam_config_filename,
     m_parsac_threshold = Config::parsac_threshold();
     m_parsac_norm_scale = Config::parsac_norm_scale();
 
+    m_depth_fusion_enabled = Config::depth_fusion_enabled();
+    m_depth_prior_weight = Config::depth_prior_weight();
+
     m_rotation_misalignment_threshold =
         Config::rotation_misalignment_threshold();
     m_rotation_ransac_threshold = Config::rotation_ransac_threshold();
@@ -351,6 +354,14 @@ YamlConfig::YamlConfig(const std::string &slam_config_filename,
         assign(m_parsac_keyframe_check_size, node);
     }
 
+    if (auto node = find_node(slam_config, "depth.fusion_enabled", false)) {
+        assign(m_depth_fusion_enabled, node);
+    }
+
+    if (auto node = find_node(slam_config, "depth.prior_weight", false)) {
+        assign(m_depth_prior_weight, node);
+    }
+
     if (auto node =
             find_node(slam_config, "rotation.misalignment_threshold", false)) {
         assign(m_rotation_misalignment_threshold, node);
@@ -525,6 +536,10 @@ double YamlConfig::parsac_norm_scale() const { return m_parsac_norm_scale; }
 size_t YamlConfig::parsac_keyframe_check_size() const {
     return m_parsac_keyframe_check_size;
 }
+
+bool YamlConfig::depth_fusion_enabled() const { return m_depth_fusion_enabled; }
+
+double YamlConfig::depth_prior_weight() const { return m_depth_prior_weight; }
 
 double YamlConfig::rotation_misalignment_threshold() const {
     return m_rotation_misalignment_threshold;

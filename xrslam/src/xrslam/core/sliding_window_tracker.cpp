@@ -224,11 +224,19 @@ bool SlidingWindowTracker::manage_keyframe() {
 
 void SlidingWindowTracker::track_landmark() {
     Frame *newframe_j = map->get_frame(map->frame_num() - 1);
+    const bool use_depth = config->depth_fusion_enabled();
 
     for (size_t k = 0; k < newframe_j->keypoint_num(); ++k) {
         if (Track *track = newframe_j->get_track(k)) {
             if (!track->tag(TT_TRIANGULATED)) {
-                if (auto p = track->triangulate()) {
+                // Prefer a metric LiDAR depth measurement at the track's reference
+                // (first) frame: it gives an immediate, scale-correct landmark even
+                // when parallax is too small for triangulation.
+                if (use_depth && seed_landmark_from_depth(track)) {
+                    track->tag(TT_TRIANGULATED) = true;
+                    track->tag(TT_VALID) = true;
+                    track->tag(TT_STATIC) = true;
+                } else if (auto p = track->triangulate()) {
                     track->set_landmark_point(p.value());
                     track->tag(TT_TRIANGULATED) = true;
                     track->tag(TT_VALID) = true;
@@ -244,9 +252,35 @@ void SlidingWindowTracker::track_landmark() {
     }
 }
 
+bool SlidingWindowTracker::seed_landmark_from_depth(Track *track) {
+    const auto [ref_frame, ref_kp] = track->first_keypoint();
+    if (!ref_frame->depth)
+        return false;
+    const vector<3> &bearing = ref_frame->get_keypoint(ref_kp); // unit vector
+    if (!(bearing.z() > 1e-6))
+        return false;
+    // Project the unit bearing back to a pixel of the reference frame to sample depth.
+    vector<3> normalized = bearing / bearing.z(); // [x, y, 1]
+    vector<3> pixel = ref_frame->K * normalized;  // [u, v, 1]
+    double depth_z = ref_frame->depth->depth_at(pixel.x(), pixel.y());
+    if (!(depth_z > 0.0))
+        return false;
+    // inv_depth is 1/range along the unit bearing; depth_z is the perpendicular z.
+    // range = depth_z / bearing.z  =>  inv_depth = bearing.z / depth_z.
+    double inv_depth = bearing.z() / depth_z;
+    track->landmark.inv_depth = inv_depth;
+    track->measured_inv_depth = inv_depth;
+    track->has_depth_measurement = true;
+    track->depth_ref_frame = ref_frame;
+    return true;
+}
+
 void SlidingWindowTracker::refine_window() {
     Frame *keyframe_i = map->get_frame(map->frame_num() - 2);
     Frame *keyframe_j = map->get_frame(map->frame_num() - 1);
+
+    const bool depth_fusion = config->depth_fusion_enabled();
+    const double depth_weight = config->depth_prior_weight();
 
     auto solver = Solver::create();
     if (!map->marginalization_factor) {
@@ -274,6 +308,14 @@ void SlidingWindowTracker::refine_window() {
             if (!track->first_frame()->tag(FT_KEYFRAME))
                 continue;
             solver->add_track_states(track);
+            // Soft metric anchor from LiDAR: only while the track is still anchored
+            // to the frame the measurement was taken in (re-anchoring invalidates it).
+            if (depth_fusion && track->has_depth_measurement &&
+                track->depth_ref_frame == track->first_frame() &&
+                track->measured_inv_depth > 0.0) {
+                solver->put_factor(
+                    Solver::create_depth_prior_factor(track, depth_weight));
+            }
         }
     }
 

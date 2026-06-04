@@ -2,6 +2,7 @@
 #define XRSLAM_SOLVER_H
 
 #include <xrslam/common.h>
+#include <xrslam/estimation/depth_factor.h>
 #include <xrslam/estimation/marginalization_factor.h>
 #include <xrslam/estimation/preintegration_factor.h>
 #include <xrslam/estimation/reprojection_factor.h>
@@ -30,6 +31,8 @@ class Solver {
     create_reprojection_prior_factor(Frame *frame, Track *track);
     static std::unique_ptr<RotationPriorFactor>
     create_rotation_prior_factor(Frame *frame, Track *track);
+    static std::unique_ptr<DepthPriorFactor>
+    create_depth_prior_factor(Track *track, double weight);
     static std::unique_ptr<PreIntegrationErrorFactor>
     create_preintegration_error_factor(Frame *frame_i, Frame *frame_j,
                                        const PreIntegrator &preintegration);
@@ -45,6 +48,7 @@ class Solver {
     virtual void add_factor(ReprojectionErrorFactor *rpecost);
     virtual void add_factor(ReprojectionPriorFactor *rppcost);
     virtual void add_factor(RotationPriorFactor *ropcost);
+    virtual void add_factor(DepthPriorFactor *dpcost);
     virtual void add_factor(PreIntegrationErrorFactor *piecost);
     virtual void add_factor(PreIntegrationPriorFactor *pipcost);
     virtual void add_factor(MarginalizationFactor *marcost);
@@ -62,6 +66,7 @@ class Solver {
     virtual void
     manage_factor(std::unique_ptr<ReprojectionPriorFactor> &&factor);
     virtual void manage_factor(std::unique_ptr<RotationPriorFactor> &&factor);
+    virtual void manage_factor(std::unique_ptr<DepthPriorFactor> &&factor);
     virtual void
     manage_factor(std::unique_ptr<PreIntegrationErrorFactor> &&factor);
     virtual void

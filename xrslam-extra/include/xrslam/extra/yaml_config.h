@@ -85,6 +85,9 @@ class YamlConfig : public Config {
     double parsac_norm_scale() const override;
     size_t parsac_keyframe_check_size() const override;
 
+    bool depth_fusion_enabled() const override;
+    double depth_prior_weight() const override;
+
     double rotation_misalignment_threshold() const override;
     double rotation_ransac_threshold() const override;
 
@@ -141,6 +144,9 @@ class YamlConfig : public Config {
     double m_parsac_threshold;
     double m_parsac_norm_scale;
     size_t m_parsac_keyframe_check_size;
+
+    bool m_depth_fusion_enabled;
+    double m_depth_prior_weight;
 
     double m_rotation_misalignment_threshold;
     double m_rotation_ransac_threshold;

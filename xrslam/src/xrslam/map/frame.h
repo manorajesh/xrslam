@@ -63,6 +63,7 @@ class Frame : public Tagged<FrameTag>, public Identifiable<Frame> {
     matrix<3> K;
     matrix<2> sqrt_inv_cov;
     std::shared_ptr<Image> image;
+    std::shared_ptr<DepthMap> depth; // metric depth registered to this frame, if any
 
     PoseState pose;
     MotionState motion;

@@ -76,6 +76,12 @@ class Track : public Tagged<TrackTag>, public Identifiable<Track> {
     LandmarkState landmark;
     size_t m_life = 0;
 
+    // LiDAR/depth measurement seeded at track birth (inverse range in the reference frame).
+    // depth_ref_frame guards re-anchoring: the prior is only valid while first_frame() == it.
+    bool has_depth_measurement = false;
+    double measured_inv_depth = 0.0;
+    Frame *depth_ref_frame = nullptr;
+
   private:
     std::map<Frame *, size_t, compare<Frame *>> keypoint_refs;
 };

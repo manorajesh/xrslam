@@ -2,6 +2,7 @@
 #define XRSLAM_XRSLAM_H
 
 #include <Eigen/Eigen>
+#include <cmath>
 #include <memory>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/opencv.hpp>
@@ -68,6 +69,29 @@ struct OutputObject {
     int isolated;
 };
 
+// Metric depth map (e.g. from LiDAR), registered to the color/SLAM frame's FOV but
+// typically at a lower resolution. Used to seed/constrain landmark inverse depth.
+struct DepthMap {
+    std::vector<float> data;   // depth in metres, row-major; <= 0 means invalid
+    int width = 0;             // depth-map resolution
+    int height = 0;
+    int color_width = 0;       // color/SLAM frame resolution this depth registers to
+    int color_height = 0;
+    double t = 0;
+
+    // Sample depth (metres) at a pixel of the color/SLAM frame; 0 if invalid/out of range.
+    double depth_at(double u, double v) const {
+        if (width <= 0 || height <= 0 || color_width <= 0 || color_height <= 0)
+            return 0.0;
+        long du = std::lround(u * (double)width / (double)color_width);
+        long dv = std::lround(v * (double)height / (double)color_height);
+        if (du < 0 || du >= width || dv < 0 || dv >= height)
+            return 0.0;
+        float d = data[(size_t)dv * (size_t)width + (size_t)du];
+        return d > 0.0f ? (double)d : 0.0;
+    }
+};
+
 class Config {
   public:
     virtual ~Config();
@@ -131,12 +155,19 @@ class Config {
     virtual double parsac_norm_scale() const;
     virtual size_t parsac_keyframe_check_size() const;
 
+    // LiDAR/depth fusion. When disabled the engine behaves exactly as monocular VIO.
+    virtual bool depth_fusion_enabled() const;
+    virtual double depth_prior_weight() const;
+
     void log_config() const;
 };
 
 class Image {
   public:
     double t;
+
+    // Optional depth map registered to this frame (null when depth fusion is off).
+    std::shared_ptr<DepthMap> depth;
 
     virtual uchar *get_rawdata() const = 0;
     virtual size_t width() const = 0;

@@ -1,4 +1,5 @@
 #include <ceres/ceres.h>
+#include <xrslam/estimation/ceres/depth_factor.h>
 #include <xrslam/estimation/ceres/marginalization_factor.h>
 #include <xrslam/estimation/ceres/preintegration_factor.h>
 #include <xrslam/estimation/ceres/quaternion_parameterization.h>
@@ -21,6 +22,7 @@ struct Solver::SolverDetails {
     std::vector<std::unique_ptr<ReprojectionErrorFactor>> managed_rpefactors;
     std::vector<std::unique_ptr<ReprojectionPriorFactor>> managed_rppfactors;
     std::vector<std::unique_ptr<RotationPriorFactor>> managed_ropfactors;
+    std::vector<std::unique_ptr<DepthPriorFactor>> managed_dpfactors;
     std::vector<std::unique_ptr<PreIntegrationErrorFactor>> managed_piefactors;
     std::vector<std::unique_ptr<PreIntegrationPriorFactor>> managed_pipfactors;
     std::vector<std::unique_ptr<MarginalizationFactor>> managed_marfactors;
@@ -60,6 +62,11 @@ Solver::create_reprojection_prior_factor(Frame *frame, Track *track) {
 std::unique_ptr<RotationPriorFactor>
 Solver::create_rotation_prior_factor(Frame *frame, Track *track) {
     return std::make_unique<CeresRotationPriorFactor>(frame, track);
+}
+
+std::unique_ptr<DepthPriorFactor>
+Solver::create_depth_prior_factor(Track *track, double weight) {
+    return std::make_unique<CeresDepthPriorFactor>(track, weight);
 }
 
 std::unique_ptr<PreIntegrationErrorFactor>
@@ -136,6 +143,13 @@ void Solver::add_factor(RotationPriorFactor *ropfactor) {
                                        ropcost->frame->pose.q.coeffs().data());
 }
 
+void Solver::add_factor(DepthPriorFactor *dpfactor) {
+    CeresDepthPriorFactor *dpcost =
+        static_cast<CeresDepthPriorFactor *>(dpfactor);
+    details->problem->AddResidualBlock(
+        dpcost, nullptr, &(dpcost->track->landmark.inv_depth));
+}
+
 void Solver::add_factor(PreIntegrationErrorFactor *piefactor) {
     CeresPreIntegrationErrorFactor *piecost =
         static_cast<CeresPreIntegrationErrorFactor *>(piefactor);
@@ -199,6 +213,10 @@ void Solver::manage_factor(std::unique_ptr<ReprojectionPriorFactor> &&factor) {
 
 void Solver::manage_factor(std::unique_ptr<RotationPriorFactor> &&factor) {
     details->managed_ropfactors.emplace_back(std::move(factor));
+}
+
+void Solver::manage_factor(std::unique_ptr<DepthPriorFactor> &&factor) {
+    details->managed_dpfactors.emplace_back(std::move(factor));
 }
 
 void Solver::manage_factor(

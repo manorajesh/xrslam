@@ -104,6 +104,7 @@ Pose XRSLAM::Detail::track_camera(std::shared_ptr<Image> image) {
     std::unique_ptr<Frame> frame = std::make_unique<Frame>();
     frame->K = config->camera_intrinsic();
     frame->image = image;
+    frame->depth = image ? image->depth : nullptr;
     frame->sqrt_inv_cov = frame->K.block<2, 2>(0, 0);
     frame->sqrt_inv_cov(0, 0) /= ::sqrt(config->keypoint_noise_cov()(0, 0));
     frame->sqrt_inv_cov(1, 1) /= ::sqrt(config->keypoint_noise_cov()(1, 1));

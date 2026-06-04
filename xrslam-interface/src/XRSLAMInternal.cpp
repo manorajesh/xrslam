@@ -34,6 +34,9 @@ void XRSLAMPushSensorData(XRSLAMSensorType sensor_type, // sensor type
             static_cast<XRSLAMGyroscope *>(sensor_data));
         break;
     case XRSLAM_SENSOR_DEPTH_CAMERA:
+        xrslam::XRSLAMManager::Instance().PushDepth(
+            static_cast<XRSLAMDepthImage *>(sensor_data));
+        break;
     case XRSLAM_SENSOR_GRAVITY:
     case XRSLAM_SENSOR_ROTATION_VECTOR:
     case XRSLAM_SENSOR_UNKNOWN:

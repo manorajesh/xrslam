@@ -131,8 +131,33 @@ void XRSLAMManager::PushImage(XRSLAMImage *image) {
         opencv_image->raw = img.clone();
 
         std::lock_guard<std::mutex> lck(input_mutex_);
+        // Attach the depth pushed for this frame (if any) and consume it so it is
+        // never reused for a later frame that has no depth.
+        opencv_image->depth = cur_depth_;
+        cur_depth_.reset();
         cur_image_ = std::shared_ptr<xrslam::Image>(opencv_image);
     }
+}
+
+void XRSLAMManager::PushDepth(XRSLAMDepthImage *depth) {
+    if (!config_->depth_fusion_enabled() || depth == nullptr ||
+        depth->data == nullptr || depth->width <= 0 || depth->height <= 0) {
+        return;
+    }
+    auto dm = std::make_shared<xrslam::DepthMap>();
+    dm->width = depth->width;
+    dm->height = depth->height;
+    dm->color_width = (int)config_->camera_resolution()[0];
+    dm->color_height = (int)config_->camera_resolution()[1];
+    dm->t = depth->timeStamp;
+    size_t n = (size_t)depth->width * (size_t)depth->height;
+    dm->data.resize(n);
+    for (size_t i = 0; i < n; ++i) {
+        dm->data[i] = depth->data[i] * 0.001f; // millimetres -> metres (0 stays 0)
+    }
+
+    std::lock_guard<std::mutex> lck(input_mutex_);
+    cur_depth_ = dm;
 }
 
 void XRSLAMManager::PushAcceleration(XRSLAMAcceleration *acc) {
