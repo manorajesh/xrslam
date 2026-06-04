@@ -226,6 +226,13 @@ void XRSLAMSetViewer(void *viewer);
 void XRSLAMGetResult(XRSLAMResultType result_type, void *result_data);
 
 /**
+ * @brief depth-fusion telemetry from the latest optimization.
+ * @param[out] seeded number of active landmarks carrying a LiDAR depth prior.
+ * @param[out] total  number of active landmarks in the sliding window.
+ */
+void XRSLAMGetDepthFusionStats(int *seeded, int *total);
+
+/**
  * @brief destroy SLAM system
  */
 void XRSLAMDestroy();

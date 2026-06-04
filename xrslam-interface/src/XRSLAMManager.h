@@ -41,6 +41,7 @@ class XRSLAMManager {
     void GetResultBias(XRSLAMIMUBias *bias) const;
     void GetResultVersion(XRSLAMStringOutput *output) const;
     void GetInfoIntrinsics(XRSLAMIntrinsics *intrinsics) const;
+    void GetDepthFusionStats(int *seeded, int *total) const;
   private:
     XRSLAMManager();
 

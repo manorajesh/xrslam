@@ -90,4 +90,8 @@ void XRSLAMGetResult(XRSLAMResultType result_type, // result type
     }
 }
 
+void XRSLAMGetDepthFusionStats(int *seeded, int *total) {
+    xrslam::XRSLAMManager::Instance().GetDepthFusionStats(seeded, total);
+}
+
 void XRSLAMDestroy() { xrslam::XRSLAMManager::Instance().Destroy(); }

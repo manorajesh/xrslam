@@ -13,7 +13,22 @@
 #include <xrslam/map/track.h>
 #include <xrslam/utility/unique_timer.h>
 
+#include <atomic>
+
 namespace xrslam {
+
+// Depth-fusion telemetry from the most recent sliding-window optimization:
+// how many active landmarks carried a LiDAR depth prior, out of the total.
+// Read across threads via get_depth_fusion_stats (declared where consumed).
+namespace {
+std::atomic<int> g_depth_seeded{0};
+std::atomic<int> g_depth_total{0};
+} // namespace
+
+void get_depth_fusion_stats(int &seeded, int &total) {
+    seeded = g_depth_seeded.load(std::memory_order_relaxed);
+    total = g_depth_total.load(std::memory_order_relaxed);
+}
 
 SlidingWindowTracker::SlidingWindowTracker(std::unique_ptr<Map> keyframe_map,
                                            std::shared_ptr<Config> config)
@@ -292,6 +307,7 @@ void SlidingWindowTracker::refine_window() {
         solver->add_frame_states(frame);
     }
     std::unordered_set<Track *> visited_tracks;
+    int n_total = 0, n_seeded = 0;
     for (size_t i = 0; i < map->frame_num(); ++i) {
         Frame *frame = map->get_frame(i);
         for (size_t j = 0; j < frame->keypoint_num(); ++j) {
@@ -308,6 +324,7 @@ void SlidingWindowTracker::refine_window() {
             if (!track->first_frame()->tag(FT_KEYFRAME))
                 continue;
             solver->add_track_states(track);
+            ++n_total;
             // Soft metric anchor from LiDAR: only while the track is still anchored
             // to the frame the measurement was taken in (re-anchoring invalidates it).
             if (depth_fusion && track->has_depth_measurement &&
@@ -315,9 +332,12 @@ void SlidingWindowTracker::refine_window() {
                 track->measured_inv_depth > 0.0) {
                 solver->put_factor(
                     Solver::create_depth_prior_factor(track, depth_weight));
+                ++n_seeded;
             }
         }
     }
+    g_depth_total.store(n_total, std::memory_order_relaxed);
+    g_depth_seeded.store(n_seeded, std::memory_order_relaxed);
 
     solver->add_factor(map->marginalization_factor.get());
 

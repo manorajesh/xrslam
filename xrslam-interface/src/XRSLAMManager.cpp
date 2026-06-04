@@ -205,6 +205,17 @@ void XRSLAMManager::GetResultCameraPose(XRSLAMPose *pose) const {
     pose->quaternion[3] = camera_pose.q.w();
 }
 
+// Defined in xrslam-core (sliding_window_tracker.cpp); forward-declared here (already
+// inside namespace xrslam) to avoid touching a widely-included header.
+void get_depth_fusion_stats(int &seeded, int &total);
+
+void XRSLAMManager::GetDepthFusionStats(int *seeded, int *total) const {
+    int s = 0, t = 0;
+    get_depth_fusion_stats(s, t);
+    if (seeded) *seeded = s;
+    if (total) *total = t;
+}
+
 void XRSLAMManager::GetInfoIntrinsics(XRSLAMIntrinsics *intrinsics) const {
     intrinsics->fx = config_->camera_intrinsic()(0, 0);
     intrinsics->fy = config_->camera_intrinsic()(1, 1);
