@@ -154,6 +154,7 @@ class Config {
     virtual double parsac_threshold() const;
     virtual double parsac_norm_scale() const;
     virtual size_t parsac_keyframe_check_size() const;
+    virtual bool parsac_fast_imu_pnp() const;
 
     // LiDAR/depth fusion. When disabled the engine behaves exactly as monocular VIO.
     virtual bool depth_fusion_enabled() const;

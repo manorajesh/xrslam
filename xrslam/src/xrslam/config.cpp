@@ -75,6 +75,8 @@ double Config::parsac_norm_scale() const { return 1.0; }
 
 size_t Config::parsac_keyframe_check_size() const { return 3; }
 
+bool Config::parsac_fast_imu_pnp() const { return false; }
+
 size_t Config::sliding_window_tracker_frequent() const { return 1; }
 
 bool Config::depth_fusion_enabled() const { return false; }
@@ -212,6 +214,9 @@ void Config::log_config() const {
     ss << "Config::parsac_threshold: " << parsac_threshold() << std::endl;
 
     ss << "Config::parsac_norm_scale: " << parsac_norm_scale() << std::endl;
+
+    ss << "Config::parsac_fast_imu_pnp: " << parsac_fast_imu_pnp()
+       << std::endl;
 
     ss << "Config::rotation_misalignment_threshold: "
        << rotation_misalignment_threshold() << std::endl;

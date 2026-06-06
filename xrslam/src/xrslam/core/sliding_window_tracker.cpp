@@ -679,7 +679,8 @@ bool SlidingWindowTracker::judge_track_status() {
     vector<3> tcw = pose.q.inverse() * pose.p * (-1.0);
     matrix<4> T_IMU =
         find_pnp_matrix_parsac_imu(m_P3D, m_P2D, m_lens, Rcw, tcw, 0.20, 1.0,
-                                   mask, 1.0 / curr_frame->K(0, 0));
+                                   mask, 1.0 / curr_frame->K(0, 0), 0.999,
+                                   1000, 0, config->parsac_fast_imu_pnp());
 
     matrix<3> R;
     vector<3> t;

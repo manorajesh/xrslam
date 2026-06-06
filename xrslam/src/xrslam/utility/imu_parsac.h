@@ -20,9 +20,10 @@ struct IMU_Parsac {
     std::vector<char> inlier_mask;
 
     IMU_Parsac(double threshold, double confidence = 0.999,
-               size_t max_iteration = 1000, int seed = 0)
+               size_t max_iteration = 1000, int seed = 0,
+               ModelSolver solver = ModelSolver())
         : threshold(threshold), confidence(confidence),
-          max_iteration(max_iteration), seed(seed),
+          max_iteration(max_iteration), seed(seed), solver(solver),
           m_parsacMinPriorBinConfidence(0.5) {}
 
     template <typename... DataTypes>
@@ -91,7 +92,7 @@ struct IMU_Parsac {
                 }
             }
 
-            std::vector<ModelType> models{apply(ModelSolver(), tsample)};
+            std::vector<ModelType> models{apply(solver, tsample)};
             int cnt = 0;
             for (const auto &current_model : models) {
                 size_t current_inlier_count = 0;
@@ -161,6 +162,7 @@ struct IMU_Parsac {
     matrix<4> prior_model;
     std::vector<size_t> m_lens;
     std::vector<char> m_prior_inliers_mask;
+    ModelSolver solver;
 
     void SetLens(const std::vector<size_t> &lens) { m_lens = lens; }
 

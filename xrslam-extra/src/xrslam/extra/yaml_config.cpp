@@ -116,6 +116,8 @@ YamlConfig::YamlConfig(const std::string &slam_config_filename,
     m_parsac_dynamic_probability = Config::parsac_dynamic_probability();
     m_parsac_threshold = Config::parsac_threshold();
     m_parsac_norm_scale = Config::parsac_norm_scale();
+    m_parsac_keyframe_check_size = Config::parsac_keyframe_check_size();
+    m_parsac_fast_imu_pnp = Config::parsac_fast_imu_pnp();
 
     m_depth_fusion_enabled = Config::depth_fusion_enabled();
     m_depth_prior_weight = Config::depth_prior_weight();
@@ -354,6 +356,10 @@ YamlConfig::YamlConfig(const std::string &slam_config_filename,
         assign(m_parsac_keyframe_check_size, node);
     }
 
+    if (auto node = find_node(slam_config, "parsac.fast_imu_pnp", false)) {
+        assign(m_parsac_fast_imu_pnp, node);
+    }
+
     if (auto node = find_node(slam_config, "depth.fusion_enabled", false)) {
         assign(m_depth_fusion_enabled, node);
     }
@@ -535,6 +541,10 @@ double YamlConfig::parsac_norm_scale() const { return m_parsac_norm_scale; }
 
 size_t YamlConfig::parsac_keyframe_check_size() const {
     return m_parsac_keyframe_check_size;
+}
+
+bool YamlConfig::parsac_fast_imu_pnp() const {
+    return m_parsac_fast_imu_pnp;
 }
 
 bool YamlConfig::depth_fusion_enabled() const { return m_depth_fusion_enabled; }
