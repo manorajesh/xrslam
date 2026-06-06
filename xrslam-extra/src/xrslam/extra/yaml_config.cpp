@@ -125,9 +125,11 @@ YamlConfig::YamlConfig(const std::string &slam_config_filename,
     m_rotation_misalignment_threshold =
         Config::rotation_misalignment_threshold();
     m_rotation_ransac_threshold = Config::rotation_ransac_threshold();
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     m_visual_localization_enable = Config::visual_localization_enable();
     m_visual_localization_ip = Config::visual_localization_config_ip();
     m_visual_localization_port = Config::visual_localization_config_port();
+#endif
 
     YAML::Node slam_config;
     YAML::Node device_config;
@@ -313,6 +315,7 @@ YamlConfig::YamlConfig(const std::string &slam_config_filename,
         assign(m_initializer_refine_imu, node);
     }
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     if (auto node =
             find_node(slam_config, "visual_localization.enable", false)) {
         assign(m_visual_localization_enable, node);
@@ -325,6 +328,7 @@ YamlConfig::YamlConfig(const std::string &slam_config_filename,
     if (auto node = find_node(slam_config, "visual_localization.port", false)) {
         assign(m_visual_localization_port, node);
     }
+#endif
 
     if (auto node = find_node(slam_config, "solver.iteration_limit", false)) {
         assign(m_solver_iteration_limit, node);
@@ -511,6 +515,7 @@ bool YamlConfig::initializer_refine_imu() const {
     return m_initializer_refine_imu;
 }
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 bool YamlConfig::visual_localization_enable() const {
     return m_visual_localization_enable;
 }
@@ -522,6 +527,7 @@ std::string YamlConfig::visual_localization_config_ip() const {
 size_t YamlConfig::visual_localization_config_port() const {
     return m_visual_localization_port;
 }
+#endif
 
 size_t YamlConfig::solver_iteration_limit() const {
     return m_solver_iteration_limit;

@@ -72,9 +72,11 @@ class YamlConfig : public Config {
     size_t initializer_min_landmarks() const override;
     bool initializer_refine_imu() const override;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     bool visual_localization_enable() const override;
     std::string visual_localization_config_ip() const override;
     size_t visual_localization_config_port() const override;
+#endif
 
     size_t solver_iteration_limit() const override;
     double solver_time_limit() const override;
@@ -133,9 +135,11 @@ class YamlConfig : public Config {
     size_t m_initializer_min_landmarks;
     bool m_initializer_refine_imu;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     bool m_visual_localization_enable;
     std::string m_visual_localization_ip;
     size_t m_visual_localization_port;
+#endif
 
     size_t m_solver_iteration_limit;
     double m_solver_time_limit;

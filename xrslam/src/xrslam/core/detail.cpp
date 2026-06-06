@@ -6,7 +6,9 @@
 #include <xrslam/geometry/lie_algebra.h>
 #include <xrslam/geometry/stereo.h>
 #include <xrslam/inspection.h>
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 #include <xrslam/localizer/localizer.h>
+#endif
 #include <xrslam/map/frame.h>
 #include <xrslam/map/map.h>
 
@@ -168,12 +170,14 @@ Pose XRSLAM::Detail::predict_pose(const double &t) {
         output_pose.p.setZero();
     }
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     if (config->visual_localization_enable() &&
         frontend->global_localization_state()) {
         if (frontend->localizer.get()) {
             return frontend->localizer->transform(output_pose);
         }
     }
+#endif
     return output_pose;
 }
 
@@ -204,7 +208,11 @@ void XRSLAM::Detail::disable_global_localization() {
 void XRSLAM::Detail::query_frame() { frontend->query_frame(); }
 
 bool XRSLAM::Detail::global_localization_initialized() {
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     return frontend->localizer ? frontend->localizer->is_initialized() : false;
+#else
+    return false;
+#endif
 }
 
 // for AR
@@ -223,12 +231,14 @@ std::tuple<double, Pose> XRSLAM::Detail::get_latest_state() const {
         timestamp = 0.0;
     }
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     if (config->visual_localization_enable() &&
         frontend->global_localization_state()) {
         if (frontend->localizer.get()) {
             output_pose = frontend->localizer->transform(output_pose);
         }
     }
+#endif
 
     return {timestamp, output_pose};
 }

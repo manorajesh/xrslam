@@ -5,7 +5,9 @@
 #include <xrslam/estimation/solver.h>
 #include <xrslam/geometry/stereo.h>
 #include <xrslam/inspection.h>
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 #include <xrslam/localizer/localizer.h>
+#endif
 #include <xrslam/map/frame.h>
 #include <xrslam/map/map.h>
 #include <xrslam/map/track.h>
@@ -103,22 +105,26 @@ void FeatureTracker::work(std::unique_lock<std::mutex> &l) {
                                     latest_frame->motion};
                     lk.unlock();
                     keymap->erase_frame(keymap->frame_num() - 1);
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
                     if (config->visual_localization_enable() &&
                         detail->frontend->global_localization_state()) {
                         detail->frontend->localizer->query_localization(
                             latest_frame->image, latest_frame->pose);
                         // detail->frontend->localizer->send_pose_message(frame->image->t);
                     }
+#endif
                 }
 #else
                 std::unique_lock lk(latest_pose_mutex);
                 latest_state = {frame->image->t, frame->pose, frame->motion};
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
                 if (config->visual_localization_enable() &&
                     detail->frontend->global_localization_state()) {
                     detail->frontend->localizer->query_localization(
                         frame->image, frame->pose);
                     // detail->frontend->localizer->send_pose_message(frame->image->t);
                 }
+#endif
                 lk.unlock();
 #endif
             }

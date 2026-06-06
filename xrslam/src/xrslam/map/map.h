@@ -45,7 +45,9 @@ class Map {
 
     Track *get_track_by_id(size_t id) const;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     void create_virtual_object_manager(Localizer *localizer);
+#endif
     void create_virtual_object_manager();
     bool is_virtual_object_manager_running() {
         return virtual_object_manager.get() != nullptr;

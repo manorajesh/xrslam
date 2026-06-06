@@ -49,11 +49,13 @@ size_t Config::initializer_min_landmarks() const { return 30; }
 
 bool Config::initializer_refine_imu() const { return true; }
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 bool Config::visual_localization_enable() const { return false; }
 
 std::string Config::visual_localization_config_ip() const { return "0.0.0.0"; }
 
 size_t Config::visual_localization_config_port() const { return 0; }
+#endif
 
 size_t Config::solver_iteration_limit() const { return 10; }
 
@@ -192,6 +194,7 @@ void Config::log_config() const {
     ss << "Config::initializer_refine_imu: " << initializer_refine_imu()
        << std::endl;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     ss << "Config::visual_localization_enable: " << visual_localization_enable()
        << std::endl;
 
@@ -200,6 +203,7 @@ void Config::log_config() const {
 
     ss << "Config::visual_localization_config_port: "
        << visual_localization_config_port() << std::endl;
+#endif
 
     ss << "Config::solver_iteration_limit: " << solver_iteration_limit()
        << std::endl;

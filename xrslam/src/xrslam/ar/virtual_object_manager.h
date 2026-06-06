@@ -2,7 +2,9 @@
 #define XRSLAM_VIRTUAL_OBJECT_H
 #include <xrslam/common.h>
 #include <xrslam/estimation/state.h>
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 #include <xrslam/localizer/localizer.h>
+#endif
 #include <xrslam/utility/identifiable.h>
 
 namespace xrslam {
@@ -29,7 +31,9 @@ class VirtualObjectManager {
 
   public:
     VirtualObjectManager(Map *map);
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     VirtualObjectManager(Map *map, Localizer *localizer);
+#endif
     ~VirtualObjectManager();
 
     size_t create_virtual_object();
@@ -54,7 +58,9 @@ class VirtualObjectManager {
     size_t track_num;
     std::vector<std::unique_ptr<VirtualObject>> virtual_objects;
     std::map<size_t, VirtualObject *> id_map;
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     Localizer *localizer = nullptr;
+#endif
 };
 
 } // namespace xrslam

@@ -137,9 +137,11 @@ class Config {
     virtual size_t initializer_min_landmarks() const;
     virtual bool initializer_refine_imu() const;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     virtual bool visual_localization_enable() const;
     virtual std::string visual_localization_config_ip() const;
     virtual size_t visual_localization_config_port() const;
+#endif
 
     virtual size_t solver_iteration_limit() const;
     virtual double solver_time_limit() const;
