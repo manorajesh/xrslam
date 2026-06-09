@@ -2,6 +2,7 @@
 #define XRSLAM_EXTRA_OPENCV_IMAGE_H
 
 #include <ceres/cubic_interpolation.h>
+#include <opencv2/features.hpp>
 #include <opencv2/opencv.hpp>
 #include <xrslam/xrslam.h>
 

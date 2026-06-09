@@ -49,7 +49,7 @@ if(XRSLAM_IOS)
     #                         )
     # for IOS static_lib merge
     add_custom_command(TARGET xrslam POST_BUILD
-                       COMMAND libtool -static -o $<TARGET_FILE:xrslam> $<TARGET_FILE:xrslam> $<TARGET_FILE:xrslam-extra-opencv-image> $<TARGET_FILE:xrslam-extra-yaml-config> $<TARGET_FILE:xrslam-core> $<TARGET_LINKER_FILE:yaml-cpp>
+                       COMMAND libtool -static -o $<TARGET_FILE:xrslam> $<TARGET_FILE:xrslam> $<TARGET_FILE:xrslam-extra-opencv-image> $<TARGET_FILE:xrslam-extra-yaml-config> $<TARGET_FILE:xrslam-core> $<TARGET_LINKER_FILE:yaml-cpp> $<TARGET_LINKER_FILE:spdlog>
                       )
 endif()
 

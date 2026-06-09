@@ -7,7 +7,7 @@
 
 namespace xrslam {
 
-struct QuaternionParameterization : public ceres::LocalParameterization {
+struct QuaternionParameterization : public ceres::Manifold {
     bool Plus(const double *q, const double *dq,
               double *q_plus_dq) const override {
         map<quaternion> result(q_plus_dq);
@@ -15,15 +15,28 @@ struct QuaternionParameterization : public ceres::LocalParameterization {
                      .normalized();
         return true;
     }
-    bool ComputeJacobian(const double *, double *jacobian) const override {
+    bool PlusJacobian(const double *, double *jacobian) const override {
         map<matrix<4, 3, true>> J(jacobian);
         J.setIdentity(); // the composited jacobian is computed in
                          // PreIntegrationError::Evaluate(), we simply forward
                          // it.
         return true;
     }
-    int GlobalSize() const override { return 4; }
-    int LocalSize() const override { return 3; }
+    bool Minus(const double *y, const double *x,
+               double *y_minus_x) const override {
+        map<vector<3>> result(y_minus_x);
+        result = logmap(const_map<quaternion>(x).conjugate() *
+                        const_map<quaternion>(y));
+        return true;
+    }
+    bool MinusJacobian(const double *, double *jacobian) const override {
+        map<matrix<3, 4, true>> J(jacobian);
+        J.setZero();
+        J.template block<3, 3>(0, 0).setIdentity();
+        return true;
+    }
+    int AmbientSize() const override { return 4; }
+    int TangentSize() const override { return 3; }
 };
 
 } // namespace xrslam
