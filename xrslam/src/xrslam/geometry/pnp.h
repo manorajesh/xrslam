@@ -93,6 +93,66 @@ inline double pnp_reproject_error(const matrix<4> &T, const vector<3> &P1,
         .squaredNorm();
 }
 
+inline bool solve_translation_fixed_rotation(
+    const std::array<vector<3>, 6> &Xs, const std::array<vector<2>, 6> &xs,
+    const matrix<3> &R, vector<3> &t) {
+    matrix<3> AtA = matrix<3>::Zero();
+    vector<3> Atb = vector<3>::Zero();
+
+    for (size_t i = 0; i < Xs.size(); ++i) {
+        const vector<3> Y = R * Xs[i];
+        const double u = xs[i][0];
+        const double v = xs[i][1];
+
+        matrix<3> A;
+        A << 0.0, -1.0, v,
+             1.0,  0.0, -u,
+            -v,    u, 0.0;
+
+        vector<3> b;
+        b << Y[1] - v * Y[2],
+             -Y[0] + u * Y[2],
+             -u * Y[1] + v * Y[0];
+
+        AtA.noalias() += A.transpose() * A;
+        Atb.noalias() += A.transpose() * b;
+    }
+
+    if (!AtA.allFinite() || !Atb.allFinite()) {
+        return false;
+    }
+
+    Eigen::LDLT<matrix<3>> ldlt(AtA);
+    if (ldlt.info() != Eigen::Success || !ldlt.isPositive()) {
+        return false;
+    }
+
+    const auto d = ldlt.vectorD().cwiseAbs();
+    const double min_d = d.minCoeff();
+    const double max_d = d.maxCoeff();
+    if (!std::isfinite(min_d) || !std::isfinite(max_d) || min_d < 1.0e-10 ||
+        max_d / min_d > 1.0e12) {
+        return false;
+    }
+
+    t = ldlt.solve(Atb);
+    return t.allFinite();
+}
+
+inline std::vector<matrix<4>> solve_pnp_6pt_fixed_rotation(
+    const std::array<vector<3>, 6> &Xs, const std::array<vector<2>, 6> &xs,
+    const matrix<3> &R) {
+    vector<3> t;
+    if (!solve_translation_fixed_rotation(Xs, xs, R, t)) {
+        return {};
+    }
+
+    matrix<4> pose = matrix<4>::Identity();
+    pose.block<3, 3>(0, 0) = R;
+    pose.block<3, 1>(0, 3) = t;
+    return {pose};
+}
+
 matrix<4> find_pnp_matrix(const std::vector<vector<3>> &Xs,
                           const std::vector<vector<2>> &xs,
                           std::vector<char> &inlier_mask,
@@ -168,11 +228,23 @@ matrix<4> find_pnp_matrix_parsac_imu(
     const std::vector<size_t> &lens, const matrix<3> &R, const vector<3> &t,
     const double &dynamic_prob, const double &scale,
     std::vector<char> &inlier_mask, double threshold = 1.0,
-    double confidence = 0.999, size_t max_iteration = 1000, int seed = 0) {
+    double confidence = 0.999, size_t max_iteration = 1000, int seed = 0,
+    bool fast_imu_pnp = false) {
     struct PnpSolver {
+        const matrix<3> &R;
+        bool fast_imu_pnp;
+        PnpSolver(const matrix<3> &R, bool fast_imu_pnp)
+            : R(R), fast_imu_pnp(fast_imu_pnp) {}
+
         std::vector<matrix<4>>
         operator()(const std::array<vector<3>, 6> &samples1,
                    const std::array<vector<2>, 6> &samples2) const {
+            if (fast_imu_pnp) {
+                auto poses = solve_pnp_6pt_fixed_rotation(samples1, samples2, R);
+                if (!poses.empty()) {
+                    return poses;
+                }
+            }
             return solve_pnp_6pt(samples1, samples2);
         }
         // std::vector<matrix<4>> operator()(const std::array<vector<3>, 4>
@@ -190,8 +262,10 @@ matrix<4> find_pnp_matrix_parsac_imu(
 
     static const double t2 = 5.99;
     static std::vector<float> binConfidences(400, 0.5);
+    PnpSolver pnp_solver(R, fast_imu_pnp);
     IMU_Parsac<6, matrix<4>, PnpSolver, PnpEvaluator> imu_parsac(
-        2.0 * t2 * threshold * threshold, confidence, max_iteration, seed);
+        2.0 * t2 * threshold * threshold, confidence, max_iteration, seed,
+        pnp_solver);
 
     imu_parsac.SetPriorPose(R, t);
     imu_parsac.SetNormScale(scale);

@@ -5,7 +5,9 @@
 #include <xrslam/estimation/solver.h>
 #include <xrslam/geometry/stereo.h>
 #include <xrslam/inspection.h>
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 #include <xrslam/localizer/localizer.h>
+#endif
 #include <xrslam/map/frame.h>
 #include <xrslam/map/map.h>
 #include <xrslam/map/track.h>
@@ -103,22 +105,26 @@ void FeatureTracker::work(std::unique_lock<std::mutex> &l) {
                                     latest_frame->motion};
                     lk.unlock();
                     keymap->erase_frame(keymap->frame_num() - 1);
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
                     if (config->visual_localization_enable() &&
                         detail->frontend->global_localization_state()) {
                         detail->frontend->localizer->query_localization(
                             latest_frame->image, latest_frame->pose);
                         // detail->frontend->localizer->send_pose_message(frame->image->t);
                     }
+#endif
                 }
 #else
                 std::unique_lock lk(latest_pose_mutex);
                 latest_state = {frame->image->t, frame->pose, frame->motion};
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
                 if (config->visual_localization_enable() &&
                     detail->frontend->global_localization_state()) {
                     detail->frontend->localizer->query_localization(
                         frame->image, frame->pose);
                     // detail->frontend->localizer->send_pose_message(frame->image->t);
                 }
+#endif
                 lk.unlock();
 #endif
             }
@@ -285,15 +291,31 @@ void FeatureTracker::solve_pnp() {
 
     auto solver = Solver::create();
 
-    solver->add_frame_states(latest_frame);
+    // Only the latest frame's pose is free; the mirrored keyframes and their
+    // landmarks are fixed (see mirror_map). This is a pure PnP, so no motion state.
+    solver->add_frame_states(latest_frame, false);
 
+    size_t factor_count = 0;
     for (size_t j = 0; j < latest_frame->keypoint_num(); ++j) {
         if (Track *track = latest_frame->get_track(j)) {
             if (track->all_tagged(TT_VALID, TT_TRIANGULATED)) {
                 solver->put_factor(Solver::create_reprojection_prior_factor(
                     latest_frame, track));
+                ++factor_count;
             }
         }
+    }
+
+    // Visually refine the live output pose against the (LiDAR-depth-anchored) map
+    // landmarks every frame. Without this solve the per-frame pose is pure IMU
+    // dead-reckoning forward from the last backend keyframe; when the device is
+    // still the backend stops emitting keyframes, so that dead-reckoning leg grows
+    // and its noise shows up as the tracked features floating. Known landmark depth
+    // makes translation observable even at zero parallax, so the PnP pins it.
+    // Skip when too few constraints, where a degenerate PnP would be worse than the
+    // IMU prediction we already have.
+    if (factor_count >= 6) {
+        solver->solve();
     }
 }
 

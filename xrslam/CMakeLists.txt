@@ -65,11 +65,6 @@ set(PRIVATE_HEADERS
   ${XRSLAM_SOURCE_DIR}/xrslam/utility/parsac.h
   ${XRSLAM_SOURCE_DIR}/xrslam/utility/imu_parsac.h
   ${XRSLAM_SOURCE_DIR}/xrslam/ar/virtual_object_manager.h
-  ${XRSLAM_SOURCE_DIR}/xrslam/localizer/base64.h
-  ${XRSLAM_SOURCE_DIR}/xrslam/localizer/base64_convert.h
-  ${XRSLAM_SOURCE_DIR}/xrslam/localizer/localizer.h
-  ${XRSLAM_SOURCE_DIR}/xrslam/localizer/httplib.h
-  ${XRSLAM_SOURCE_DIR}/xrslam/localizer/json.h
 )
 
 set(PRIVATE_SOURCES
@@ -92,9 +87,21 @@ set(PRIVATE_SOURCES
   ${XRSLAM_SOURCE_DIR}/xrslam/xrslam.cpp
   ${XRSLAM_SOURCE_DIR}/xrslam/utility/debug.cpp
   ${XRSLAM_SOURCE_DIR}/xrslam/utility/worker.cpp
-  ${XRSLAM_SOURCE_DIR}/xrslam/localizer/localizer.cpp
   ${XRSLAM_SOURCE_DIR}/xrslam/ar/virtual_object_manager.cpp
 )
+
+if(XRSLAM_ENABLE_VISUAL_LOCALIZATION)
+  list(APPEND PRIVATE_HEADERS
+    ${XRSLAM_SOURCE_DIR}/xrslam/localizer/base64.h
+    ${XRSLAM_SOURCE_DIR}/xrslam/localizer/base64_convert.h
+    ${XRSLAM_SOURCE_DIR}/xrslam/localizer/localizer.h
+    ${XRSLAM_SOURCE_DIR}/xrslam/localizer/httplib.h
+    ${XRSLAM_SOURCE_DIR}/xrslam/localizer/json.h
+  )
+  list(APPEND PRIVATE_SOURCES
+    ${XRSLAM_SOURCE_DIR}/xrslam/localizer/localizer.cpp
+  )
+endif()
 
 add_compile_options(-fPIC)
 
@@ -130,6 +137,11 @@ target_include_directories(xrslam-core
     ${XRSLAM_SOURCE_DIR}
   PRIVATE
     ${XRSLAM_SOURCE_DIR}
+)
+
+target_compile_definitions(xrslam-core
+  PUBLIC
+    XRSLAM_ENABLE_VISUAL_LOCALIZATION=$<BOOL:${XRSLAM_ENABLE_VISUAL_LOCALIZATION}>
 )
 
 target_link_libraries(xrslam-core

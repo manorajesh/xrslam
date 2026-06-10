@@ -54,9 +54,11 @@ typedef struct XRSLAMImage {
  * @brief input depth image data
  */
 typedef struct XRSLAMDepthImage {
-    uint16_t *data;       /*!< the warped depth data. */
-    uint16_t *confidence; /*!< the warped confidence. */
+    uint16_t *data;       /*!< depth in millimetres (0 = invalid), row-major. */
+    uint16_t *confidence; /*!< optional per-pixel confidence (may be null). */
     double timeStamp;     /*!<  timestamp in second. */
+    int width;            /*!< depth map width in pixels. */
+    int height;           /*!< depth map height in pixels. */
 } XRSLAMDepthImage;
 
 /**
@@ -222,6 +224,13 @@ void XRSLAMSetViewer(void *viewer);
  * @param[out] result_data result data.
  */
 void XRSLAMGetResult(XRSLAMResultType result_type, void *result_data);
+
+/**
+ * @brief depth-fusion telemetry from the latest optimization.
+ * @param[out] seeded number of active landmarks carrying a LiDAR depth prior.
+ * @param[out] total  number of active landmarks in the sliding window.
+ */
+void XRSLAMGetDepthFusionStats(int *seeded, int *total);
 
 /**
  * @brief destroy SLAM system

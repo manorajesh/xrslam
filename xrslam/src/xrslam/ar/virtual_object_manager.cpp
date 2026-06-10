@@ -11,8 +11,10 @@ namespace xrslam {
 VirtualObjectManager::VirtualObjectManager(Map *map)
     : map(map), keypoint_radius(0.1), track_num(15) {}
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 VirtualObjectManager::VirtualObjectManager(Map *map, Localizer *localizer)
     : map(map), localizer(localizer), keypoint_radius(0.1), track_num(15) {}
+#endif
 
 VirtualObjectManager::~VirtualObjectManager() = default;
 
@@ -60,11 +62,13 @@ size_t VirtualObjectManager::create_virtual_object() {
     new_object->pose.q = R;
     new_object->pose.p = group_origin;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     if (localizer) {
         Pose object_tmp = localizer->transform(new_object->pose);
         new_object->pose.p = object_tmp.p;
         new_object->pose.q = object_tmp.q;
     }
+#endif
 
     id_map[new_object->id()] = new_object.get();
     virtual_objects.emplace_back(std::move(new_object));

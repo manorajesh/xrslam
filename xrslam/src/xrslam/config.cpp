@@ -49,11 +49,13 @@ size_t Config::initializer_min_landmarks() const { return 30; }
 
 bool Config::initializer_refine_imu() const { return true; }
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 bool Config::visual_localization_enable() const { return false; }
 
 std::string Config::visual_localization_config_ip() const { return "0.0.0.0"; }
 
 size_t Config::visual_localization_config_port() const { return 0; }
+#endif
 
 size_t Config::solver_iteration_limit() const { return 10; }
 
@@ -75,7 +77,13 @@ double Config::parsac_norm_scale() const { return 1.0; }
 
 size_t Config::parsac_keyframe_check_size() const { return 3; }
 
+bool Config::parsac_fast_imu_pnp() const { return false; }
+
 size_t Config::sliding_window_tracker_frequent() const { return 1; }
+
+bool Config::depth_fusion_enabled() const { return false; }
+
+double Config::depth_prior_weight() const { return 0.0; }
 
 void Config::log_config() const {
     std::stringstream ss;
@@ -186,6 +194,7 @@ void Config::log_config() const {
     ss << "Config::initializer_refine_imu: " << initializer_refine_imu()
        << std::endl;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     ss << "Config::visual_localization_enable: " << visual_localization_enable()
        << std::endl;
 
@@ -194,6 +203,7 @@ void Config::log_config() const {
 
     ss << "Config::visual_localization_config_port: "
        << visual_localization_config_port() << std::endl;
+#endif
 
     ss << "Config::solver_iteration_limit: " << solver_iteration_limit()
        << std::endl;
@@ -208,6 +218,9 @@ void Config::log_config() const {
     ss << "Config::parsac_threshold: " << parsac_threshold() << std::endl;
 
     ss << "Config::parsac_norm_scale: " << parsac_norm_scale() << std::endl;
+
+    ss << "Config::parsac_fast_imu_pnp: " << parsac_fast_imu_pnp()
+       << std::endl;
 
     ss << "Config::rotation_misalignment_threshold: "
        << rotation_misalignment_threshold() << std::endl;

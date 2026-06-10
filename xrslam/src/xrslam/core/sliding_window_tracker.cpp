@@ -13,7 +13,22 @@
 #include <xrslam/map/track.h>
 #include <xrslam/utility/unique_timer.h>
 
+#include <atomic>
+
 namespace xrslam {
+
+// Depth-fusion telemetry from the most recent sliding-window optimization:
+// how many active landmarks carried a LiDAR depth prior, out of the total.
+// Read across threads via get_depth_fusion_stats (declared where consumed).
+namespace {
+std::atomic<int> g_depth_seeded{0};
+std::atomic<int> g_depth_total{0};
+} // namespace
+
+void get_depth_fusion_stats(int &seeded, int &total) {
+    seeded = g_depth_seeded.load(std::memory_order_relaxed);
+    total = g_depth_total.load(std::memory_order_relaxed);
+}
 
 SlidingWindowTracker::SlidingWindowTracker(std::unique_ptr<Map> keyframe_map,
                                            std::shared_ptr<Config> config)
@@ -224,11 +239,19 @@ bool SlidingWindowTracker::manage_keyframe() {
 
 void SlidingWindowTracker::track_landmark() {
     Frame *newframe_j = map->get_frame(map->frame_num() - 1);
+    const bool use_depth = config->depth_fusion_enabled();
 
     for (size_t k = 0; k < newframe_j->keypoint_num(); ++k) {
         if (Track *track = newframe_j->get_track(k)) {
             if (!track->tag(TT_TRIANGULATED)) {
-                if (auto p = track->triangulate()) {
+                // Prefer a metric LiDAR depth measurement at the track's reference
+                // (first) frame: it gives an immediate, scale-correct landmark even
+                // when parallax is too small for triangulation.
+                if (use_depth && seed_landmark_from_depth(track)) {
+                    track->tag(TT_TRIANGULATED) = true;
+                    track->tag(TT_VALID) = true;
+                    track->tag(TT_STATIC) = true;
+                } else if (auto p = track->triangulate()) {
                     track->set_landmark_point(p.value());
                     track->tag(TT_TRIANGULATED) = true;
                     track->tag(TT_VALID) = true;
@@ -244,9 +267,35 @@ void SlidingWindowTracker::track_landmark() {
     }
 }
 
+bool SlidingWindowTracker::seed_landmark_from_depth(Track *track) {
+    const auto [ref_frame, ref_kp] = track->first_keypoint();
+    if (!ref_frame->depth)
+        return false;
+    const vector<3> &bearing = ref_frame->get_keypoint(ref_kp); // unit vector
+    if (!(bearing.z() > 1e-6))
+        return false;
+    // Project the unit bearing back to a pixel of the reference frame to sample depth.
+    vector<3> normalized = bearing / bearing.z(); // [x, y, 1]
+    vector<3> pixel = ref_frame->K * normalized;  // [u, v, 1]
+    double depth_z = ref_frame->depth->depth_at(pixel.x(), pixel.y());
+    if (!(depth_z > 0.0))
+        return false;
+    // inv_depth is 1/range along the unit bearing; depth_z is the perpendicular z.
+    // range = depth_z / bearing.z  =>  inv_depth = bearing.z / depth_z.
+    double inv_depth = bearing.z() / depth_z;
+    track->landmark.inv_depth = inv_depth;
+    track->measured_inv_depth = inv_depth;
+    track->has_depth_measurement = true;
+    track->depth_ref_frame = ref_frame;
+    return true;
+}
+
 void SlidingWindowTracker::refine_window() {
     Frame *keyframe_i = map->get_frame(map->frame_num() - 2);
     Frame *keyframe_j = map->get_frame(map->frame_num() - 1);
+
+    const bool depth_fusion = config->depth_fusion_enabled();
+    const double depth_weight = config->depth_prior_weight();
 
     auto solver = Solver::create();
     if (!map->marginalization_factor) {
@@ -258,6 +307,7 @@ void SlidingWindowTracker::refine_window() {
         solver->add_frame_states(frame);
     }
     std::unordered_set<Track *> visited_tracks;
+    int n_total = 0, n_seeded = 0;
     for (size_t i = 0; i < map->frame_num(); ++i) {
         Frame *frame = map->get_frame(i);
         for (size_t j = 0; j < frame->keypoint_num(); ++j) {
@@ -274,8 +324,20 @@ void SlidingWindowTracker::refine_window() {
             if (!track->first_frame()->tag(FT_KEYFRAME))
                 continue;
             solver->add_track_states(track);
+            ++n_total;
+            // Soft metric anchor from LiDAR: only while the track is still anchored
+            // to the frame the measurement was taken in (re-anchoring invalidates it).
+            if (depth_fusion && track->has_depth_measurement &&
+                track->depth_ref_frame == track->first_frame() &&
+                track->measured_inv_depth > 0.0) {
+                solver->put_factor(
+                    Solver::create_depth_prior_factor(track, depth_weight));
+                ++n_seeded;
+            }
         }
     }
+    g_depth_total.store(n_total, std::memory_order_relaxed);
+    g_depth_seeded.store(n_seeded, std::memory_order_relaxed);
 
     solver->add_factor(map->marginalization_factor.get());
 
@@ -617,7 +679,8 @@ bool SlidingWindowTracker::judge_track_status() {
     vector<3> tcw = pose.q.inverse() * pose.p * (-1.0);
     matrix<4> T_IMU =
         find_pnp_matrix_parsac_imu(m_P3D, m_P2D, m_lens, Rcw, tcw, 0.20, 1.0,
-                                   mask, 1.0 / curr_frame->K(0, 0));
+                                   mask, 1.0 / curr_frame->K(0, 0), 0.999,
+                                   1000, 0, config->parsac_fast_imu_pnp());
 
     matrix<3> R;
     vector<3> t;

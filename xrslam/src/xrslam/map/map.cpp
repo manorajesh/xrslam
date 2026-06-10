@@ -123,10 +123,12 @@ void Map::recycle_track(Track *track) {
     tracks.pop_back();
 }
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 void Map::create_virtual_object_manager(Localizer *localizer) {
     virtual_object_manager =
         std::make_unique<VirtualObjectManager>(this, localizer);
 }
+#endif
 
 void Map::create_virtual_object_manager() {
     virtual_object_manager = std::make_unique<VirtualObjectManager>(this);

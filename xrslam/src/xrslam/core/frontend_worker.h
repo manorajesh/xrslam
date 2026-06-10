@@ -28,11 +28,16 @@ class FrontendWorker : public Worker {
     std::tuple<double, size_t, PoseState, MotionState> get_latest_state() const;
     SysState get_system_state() const;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     bool global_localization_state() const;
     void set_global_localization_state(bool state);
     void query_frame();
-
     std::unique_ptr<Localizer> localizer;
+#else
+    bool global_localization_state() const { return false; }
+    void set_global_localization_state(bool) {}
+    void query_frame() {}
+#endif
 
   private:
     std::deque<size_t> pending_frame_ids;
@@ -45,7 +50,9 @@ class FrontendWorker : public Worker {
     std::tuple<double, size_t, PoseState, MotionState> latest_state;
     mutable std::mutex latest_state_mutex;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     bool global_localization_flag = false;
+#endif
 };
 
 } // namespace xrslam

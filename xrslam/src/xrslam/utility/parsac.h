@@ -27,13 +27,16 @@ struct Sampler {
     size_t draw_by_weight() {
         size_t index;
         int cnt = 0;
+        const size_t nBins = m_confidencesAccumulated.size() - 1;
         do {
             cnt++;
             const float r = rand() / (float)RAND_MAX;
-            index =
-                size_t(std::upper_bound(m_confidencesAccumulated.begin() + 1,
-                                        m_confidencesAccumulated.end(), r) -
-                       m_confidencesAccumulated.begin() - 1);
+            auto it = std::upper_bound(m_confidencesAccumulated.begin() + 1,
+                                       m_confidencesAccumulated.end(), r);
+            if (it == m_confidencesAccumulated.end())
+                index = nBins - 1;
+            else
+                index = size_t(it - m_confidencesAccumulated.begin() - 1);
         } while (is_sampled(index));
         m_sampled_bin_index.push_back(index);
 
@@ -264,9 +267,16 @@ struct Parsac {
         m_mapBinToValidBin = std::vector<size_t>(m_nBins, SIZE_MAX);
         for (size_t i = 0; i < N; ++i) {
             const vector<2> &p1 = pts[i];
-            const size_t iBin =
-                size_t((p1[0] + m_norm_scale) / m_BinWidth) +
-                m_nBinsX * size_t((p1[1] + m_norm_scale) / m_BinHeight);
+            // Clamp into the grid: points whose normalized coordinates fall
+            // outside [-m_norm_scale, m_norm_scale] (e.g. peripheral bearings)
+            // would otherwise produce an out-of-range iBin and corrupt the heap.
+            const long ix = (long)((p1[0] + m_norm_scale) / m_BinWidth);
+            const long iy = (long)((p1[1] + m_norm_scale) / m_BinHeight);
+            const size_t bx =
+                (size_t)std::min(std::max(ix, 0L), (long)m_nBinsX - 1);
+            const size_t by =
+                (size_t)std::min(std::max(iy, 0L), (long)m_nBinsY - 1);
+            const size_t iBin = bx + m_nBinsX * by;
             const size_t iBinValid = m_mapBinToValidBin[iBin];
             if (iBinValid == SIZE_MAX) {
                 m_mapBinToValidBin[iBin] = size_t(m_mapValidBinToBin.size());
@@ -369,6 +379,7 @@ struct Parsac {
     void make_sample_by_prior(Data &&data, Sample &&sample, size_t idata,
                               size_t isample) {
 
+        idata = std::min(idata, m_validBinData.size() - 1);
         size_t idx =
             m_validBinData[idata][rand() % m_validBinData[idata].size()];
         std::get<0>(sample)[isample] = std::get<0>(data)[idx];

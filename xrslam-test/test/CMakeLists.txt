@@ -21,5 +21,8 @@ target_link_libraries(test_version xrslam)
 xr_add_test(test_se3_cost_function SRCS src/test_main.cpp src/test_se3_cost_function.cpp)
 target_link_libraries(test_se3_cost_function xrslam)
 
+xr_add_test(test_pnp SRCS src/test_main.cpp src/test_pnp.cpp)
+target_link_libraries(test_pnp xrslam)
+
 xr_add_test(test_feature_track SRCS src/test_main.cpp src/test_feature_track.cpp)
 target_link_libraries(test_feature_track xrslam-extra-opencv-image xrslam-extra-yaml-config)

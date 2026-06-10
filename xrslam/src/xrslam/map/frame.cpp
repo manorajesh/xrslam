@@ -23,6 +23,7 @@ std::unique_ptr<Frame> Frame::clone() const {
     frame->K = K;
     frame->sqrt_inv_cov = sqrt_inv_cov;
     frame->image = image;
+    frame->depth = depth;
     frame->pose = pose;
     frame->motion = motion;
     frame->camera = camera;

@@ -20,9 +20,10 @@ struct IMU_Parsac {
     std::vector<char> inlier_mask;
 
     IMU_Parsac(double threshold, double confidence = 0.999,
-               size_t max_iteration = 1000, int seed = 0)
+               size_t max_iteration = 1000, int seed = 0,
+               ModelSolver solver = ModelSolver())
         : threshold(threshold), confidence(confidence),
-          max_iteration(max_iteration), seed(seed),
+          max_iteration(max_iteration), seed(seed), solver(solver),
           m_parsacMinPriorBinConfidence(0.5) {}
 
     template <typename... DataTypes>
@@ -91,7 +92,7 @@ struct IMU_Parsac {
                 }
             }
 
-            std::vector<ModelType> models{apply(ModelSolver(), tsample)};
+            std::vector<ModelType> models{apply(solver, tsample)};
             int cnt = 0;
             for (const auto &current_model : models) {
                 size_t current_inlier_count = 0;
@@ -161,6 +162,7 @@ struct IMU_Parsac {
     matrix<4> prior_model;
     std::vector<size_t> m_lens;
     std::vector<char> m_prior_inliers_mask;
+    ModelSolver solver;
 
     void SetLens(const std::vector<size_t> &lens) { m_lens = lens; }
 
@@ -296,9 +298,16 @@ struct IMU_Parsac {
         m_mapBinToValidBin = std::vector<size_t>(m_nBins, SIZE_MAX);
         for (size_t i = 0; i < N; ++i) {
             const vector<2> &p1 = pts[i];
-            const size_t iBin =
-                size_t((p1[0] + m_norm_scale) / m_BinWidth) +
-                m_nBinsX * size_t((p1[1] + m_norm_scale) / m_BinHeight);
+            // Clamp into the grid: points whose normalized coordinates fall
+            // outside [-m_norm_scale, m_norm_scale] (e.g. peripheral bearings)
+            // would otherwise produce an out-of-range iBin and corrupt the heap.
+            const long ix = (long)((p1[0] + m_norm_scale) / m_BinWidth);
+            const long iy = (long)((p1[1] + m_norm_scale) / m_BinHeight);
+            const size_t bx =
+                (size_t)std::min(std::max(ix, 0L), (long)m_nBinsX - 1);
+            const size_t by =
+                (size_t)std::min(std::max(iy, 0L), (long)m_nBinsY - 1);
+            const size_t iBin = bx + m_nBinsX * by;
             const size_t iBinValid = m_mapBinToValidBin[iBin];
             if (iBinValid == SIZE_MAX) {
                 m_mapBinToValidBin[iBin] = size_t(m_mapValidBinToBin.size());
@@ -406,6 +415,7 @@ struct IMU_Parsac {
     void make_sample_by_prior(Data &&data, Sample &&sample, size_t idata,
                               size_t isample) {
 
+        idata = std::min(idata, m_validBinData.size() - 1);
         size_t idx =
             m_validBinData[idata][rand() % m_validBinData[idata].size()];
         std::get<0>(sample)[isample] = std::get<0>(data)[idx];

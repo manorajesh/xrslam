@@ -6,7 +6,9 @@
 #include <xrslam/core/initializer.h>
 #include <xrslam/core/sliding_window_tracker.h>
 #include <xrslam/geometry/stereo.h>
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 #include <xrslam/localizer/localizer.h>
+#endif
 #include <xrslam/map/frame.h>
 #include <xrslam/map/map.h>
 #include <xrslam/map/track.h>
@@ -41,6 +43,7 @@ void FrontendWorker::work(std::unique_lock<std::mutex> &l) {
                     sliding_window_tracker->map.get());
             }
 #endif
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
             if (config->visual_localization_enable() &&
                 global_localization_state()) {
                 localizer = std::make_unique<Localizer>(config);
@@ -48,6 +51,9 @@ void FrontendWorker::work(std::unique_lock<std::mutex> &l) {
             } else {
                 sliding_window_tracker->map->create_virtual_object_manager();
             }
+#else
+            sliding_window_tracker->map->create_virtual_object_manager();
+#endif
             sliding_window_tracker->feature_tracking_map = detail->feature_tracker->map;
             sliding_window_tracker->set_detail(detail);
             std::unique_lock lk(latest_state_mutex);
@@ -126,6 +132,7 @@ SysState FrontendWorker::get_system_state() const {
     return SysState::SYS_UNKNOWN;
 }
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
 void FrontendWorker::query_frame() {
     if (localizer)
         localizer->query_frame();
@@ -138,5 +145,6 @@ bool FrontendWorker::global_localization_state() const {
 void FrontendWorker::set_global_localization_state(bool state) {
     global_localization_flag = state;
 }
+#endif
 
 } // namespace xrslam

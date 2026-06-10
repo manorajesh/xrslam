@@ -72,9 +72,11 @@ class YamlConfig : public Config {
     size_t initializer_min_landmarks() const override;
     bool initializer_refine_imu() const override;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     bool visual_localization_enable() const override;
     std::string visual_localization_config_ip() const override;
     size_t visual_localization_config_port() const override;
+#endif
 
     size_t solver_iteration_limit() const override;
     double solver_time_limit() const override;
@@ -84,6 +86,10 @@ class YamlConfig : public Config {
     double parsac_threshold() const override;
     double parsac_norm_scale() const override;
     size_t parsac_keyframe_check_size() const override;
+    bool parsac_fast_imu_pnp() const override;
+
+    bool depth_fusion_enabled() const override;
+    double depth_prior_weight() const override;
 
     double rotation_misalignment_threshold() const override;
     double rotation_ransac_threshold() const override;
@@ -129,9 +135,11 @@ class YamlConfig : public Config {
     size_t m_initializer_min_landmarks;
     bool m_initializer_refine_imu;
 
+#if XRSLAM_ENABLE_VISUAL_LOCALIZATION
     bool m_visual_localization_enable;
     std::string m_visual_localization_ip;
     size_t m_visual_localization_port;
+#endif
 
     size_t m_solver_iteration_limit;
     double m_solver_time_limit;
@@ -141,6 +149,10 @@ class YamlConfig : public Config {
     double m_parsac_threshold;
     double m_parsac_norm_scale;
     size_t m_parsac_keyframe_check_size;
+    bool m_parsac_fast_imu_pnp;
+
+    bool m_depth_fusion_enabled;
+    double m_depth_prior_weight;
 
     double m_rotation_misalignment_threshold;
     double m_rotation_ransac_threshold;
