@@ -9,7 +9,7 @@ namespace xrslam {
 class CostFunctionValidator {
     struct ParameterBlockInfo {
         int size;
-        const ceres::LocalParameterization *local_parameterization = nullptr;
+        const ceres::Manifold *manifold = nullptr;
         bool checked = true;
     };
     struct ResidualBlockInfo {
@@ -35,14 +35,14 @@ class CostFunctionValidator {
 
     bool AddParameterBlock(
         const double *values, int size,
-        const ceres::LocalParameterization *local_parameterization = nullptr) {
+        const ceres::Manifold *manifold = nullptr) {
         if (parameter_block_info.count(values)) {
             log_message(XRSLAM_LOG_WARNING, "repeated.");
             return false;
         }
 
-        if (local_parameterization) {
-            if (size != local_parameterization->GlobalSize()) {
+        if (manifold) {
+            if (size != manifold->AmbientSize()) {
                 log_message(XRSLAM_LOG_WARNING, "size mismatch");
                 return false;
             }
@@ -50,7 +50,7 @@ class CostFunctionValidator {
 
         ParameterBlockInfo &info = parameter_block_info[values];
         info.size = size;
-        info.local_parameterization = local_parameterization;
+        info.manifold = manifold;
         info.checked = true;
 
         return true;
@@ -81,7 +81,7 @@ class CostFunctionValidator {
             } else {
                 ParameterBlockInfo &pinfo = parameter_block_info[values];
                 pinfo.size = cost_function->parameter_block_sizes()[i];
-                pinfo.local_parameterization = nullptr;
+                pinfo.manifold = nullptr;
                 pinfo.checked = true;
             }
         }
@@ -224,14 +224,13 @@ class CostFunctionValidator {
         for (size_t i = 0; i < rbinfo.parameter_blocks.size(); ++i) {
             const ParameterBlockInfo &pbinfo =
                 parameter_block_info.at(rbinfo.parameter_blocks[i]);
-            if (pbinfo.local_parameterization) {
+            if (pbinfo.manifold) {
                 matrix<Eigen::Dynamic, Eigen::Dynamic, true> local_jacobian;
                 local_jacobian.resize(
-                    cost_function->num_residuals(),
-                    pbinfo.local_parameterization->LocalSize());
+                    cost_function->num_residuals(), pbinfo.manifold->TangentSize());
                 local_jacobian.setConstant(generate_nan());
 
-                pbinfo.local_parameterization->MultiplyByJacobian(
+                pbinfo.manifold->RightMultiplyByPlusJacobian(
                     rbinfo.parameter_blocks[i], cost_function->num_residuals(),
                     global_jacobians[i].data(), local_jacobian.data());
 
@@ -300,7 +299,7 @@ class CostFunctionValidator {
 
         vector<> residual_forward;
         residual_forward.resize(cost_function->num_residuals());
-        if (!pbinfo.local_parameterization) {
+        if (!pbinfo.manifold) {
             jacobian_fd.resize(cost_function->num_residuals(), pbinfo.size);
             for (int i = 0; i < pbinfo.size; ++i) {
                 double x = active_parameter(i);
@@ -331,14 +330,11 @@ class CostFunctionValidator {
             }
         } else {
             jacobian_fd.resize(cost_function->num_residuals(),
-                               pbinfo.local_parameterization->LocalSize());
-            for (int i = 0; i < pbinfo.local_parameterization->LocalSize();
-                 ++i) {
-                vector<> dx =
-                    vector<>::Zero(pbinfo.local_parameterization->LocalSize());
+                               pbinfo.manifold->TangentSize());
+            for (int i = 0; i < pbinfo.manifold->TangentSize(); ++i) {
+                vector<> dx = vector<>::Zero(pbinfo.manifold->TangentSize());
                 dx(i) = options.fd_epsilon;
-                pbinfo.local_parameterization->Plus(x, dx.data(),
-                                                    active_parameter.data());
+                pbinfo.manifold->Plus(x, dx.data(), active_parameter.data());
                 residual_forward.setConstant(generate_nan());
                 if (!cost_function->Evaluate(parameter_blocks.data(),
                                              residual_forward.data(),

@@ -5,7 +5,7 @@ if(NOT TARGET depends::yaml-cpp)
   FetchContent_Declare(
     depends-yaml-cpp
     GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-    GIT_TAG        yaml-cpp-0.7.0
+    GIT_TAG        yaml-cpp-0.9.0
   )
   FetchContent_GetProperties(depends-yaml-cpp)
   if(NOT depends-yaml-cpp_POPULATED)
@@ -16,6 +16,7 @@ if(NOT TARGET depends::yaml-cpp)
   set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
   set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
   set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+  set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
   set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
   add_subdirectory(${depends-yaml-cpp_SOURCE_DIR} ${depends-yaml-cpp_BINARY_DIR})
   add_library(depends::yaml-cpp INTERFACE IMPORTED GLOBAL)
